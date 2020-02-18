@@ -16,6 +16,9 @@ Headphone Jack
 
 #### First Steps
 Our first steps are
-Ordering parts: we will define this as complete after we have sent an order into the ECE stockroom
-Investigating Arduino / C libraries to use: This task will be complete after we have started development of our system using decided-upon libraries
-Getting our system to play an audio file: This task is fairly self-explanatory. It is complete when we can play an audio file over a speaker via arduino.
+
+1. Ordering parts: we will define this as complete after we have sent an order into the ECE stockroom
+
+2. Investigating Arduino / C libraries to use: This task will be complete after we have started development of our system using decided-upon libraries
+
+3. Getting our system to play an audio file: This task is fairly self-explanatory. It is complete when we can play an audio file over a speaker via arduino.
