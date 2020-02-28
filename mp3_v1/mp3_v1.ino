@@ -31,16 +31,15 @@
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
-Adafruit_VS1053_FilePlayer musicPlayer = 
-  // create breakout-example object!
-  Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
-  // create shield-example object!
-//  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
 
 
-////
+int sys_state = 0; // 0 = stopped, 1 = playing, 2 = paused
+char curr_dir[20];
 
 void setup() {
+  
+  // Setup Music Player
   Serial.begin(9600);
   Serial.println("Adafruit VS1053 Library Test");
 
@@ -58,18 +57,16 @@ void setup() {
     while (1);  // don't do anything more
   }
   Serial.println("SD OK!");
-  
-  // list files
-  printDirectory(SD.open("/"), 0);
+
+
+  // Setup MP3
+  curr_dir[0] = '/';
+  curr_dir[1] = '9';
+  Serial.println("\nWelcome to Dan & Alex's MP3 Player!\n");
+  listCommands();
   
   // Set volume for left, right channels. lower numbers == louder volume!
   musicPlayer.setVolume(20,20);
-
-  /***** Two interrupt options! *******/ 
-  // This option uses timer0, this means timer1 & t2 are not required
-  // (so you can use 'em for Servos, etc) BUT~ millis() can lose time
-  // since we're hitchhiking on top of the millis() tracker
-  //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT);
   
   // This option uses a pin interrupt. No timers required! But DREQ
   // must be on an interrupt pin. For Uno/Duemilanove/Diecimilla
@@ -85,48 +82,179 @@ void loop() {
   // This doesn't happen in the background, instead, the entire
   // file is played and the program will continue when it's done!
 //  musicPlayer.playFullFile("happymaybe.ogg");
+
+
+  // Blink Test
   digitalWrite(13, HIGH);
   delay(1000);
   digitalWrite(13, LOW);
   delay(900);
+
+  
+//  printNextFile(SD.open("/"), 0);
+  
   // Start playing a file, then we can do stuff while waiting for it to finish
-  if (! musicPlayer.startPlayingFile("/happym~1.mp3")) {
-    Serial.println("Could not open file happymaybe.mp3");
-    while (1);
-  }
-  Serial.println(F("Started playing"));
+//  if (! musicPlayer.startPlayingFile("/happym~1.mp3")) {
+//    Serial.println("Could not open file happymaybe.mp3");
+//    while (1);
+//  }
 
-  if (Serial.available()) {
-    Serial.print("HI");
-    
+  
+//  Serial.println(F("Started playing"));
+
+  while (Serial.available()) {
+    char op_code = Serial.read();
+    switch (op_code) {
+      case 'l':
+        list_current_directory();
+        break;
+      case 'b':
+//        char song_number = Serial.read();
+//        Serial.println(song_number);
+        play_song();
+        Serial.println(curr_dir);
+        break;
+      case 'p':
+        pause_song(1);
+        break;
+      case 's':
+        stop_song();
+        break;
+      case 'r':
+        pause_song(0);
+        break;
+      case 'e':
+////        exit_current_directory();
+        break;
+    }
   }
 
-  while (musicPlayer.playingMusic) {
-    // file is now playing in the 'background' so now's a good time
-    // to do something else like handling LEDs or buttons :)
-    Serial.print(".");
-    delay(1000);
-    char c = Serial.read();
-    
-    // if we get an 's' on the serial console, stop!
-    if (c == 's') {
-      musicPlayer.stopPlaying();
-    }
-    
-    // if we get an 'p' on the serial console, pause/unpause!
-    if (c == 'p') {
-      if (! musicPlayer.paused()) {
-        Serial.println("Paused");
-        musicPlayer.pausePlaying(true);
-      } else { 
-        Serial.println("Resumed");
-        musicPlayer.pausePlaying(false);
-      }
-    }
-  }
-  Serial.println("Done playing music");
+//  while (musicPlayer.playingMusic) {
+//    // file is now playing in the 'background' so now's a good time
+//    // to do something else like handling LEDs or buttons :)
+//    Serial.print(".");
+//    delay(1000);
+//    char c = Serial.read();
+//    Serial.println(c);
+//    
+//    // if we get an 's' on the serial console, stop!
+//    if (c == 's') {
+//      musicPlayer.stopPlaying();
+//    }
+//    
+//    // if we get an 'p' on the serial console, pause/unpause!
+//    if (c == 'p') {
+//      if (! musicPlayer.paused()) {
+//        Serial.println("Paused");
+//        musicPlayer.pausePlaying(true);
+//      } else { 
+//        Serial.println("Resumed");
+//        musicPlayer.pausePlaying(false);
+//      }
+//    }
+//  }
+//  Serial.println("Done playing music");
 }
 
+void stop_song() {
+  if (sys_state != 0) {
+    if (musicPlayer.playingMusic) {
+      Serial.println("Song Stopped");
+      musicPlayer.stopPlaying();
+    }
+    sys_state = 0;
+  }
+}
+
+void pause_song(int stat) {
+  if (musicPlayer.playingMusic) {
+    if (stat) {
+      Serial.println("Song Paused");
+      sys_state = 2;
+    } else {
+      Serial.println("Song Resumed");
+      sys_state = 1;
+    }
+    musicPlayer.pausePlaying(stat);
+  }
+}
+
+void listCommands() {
+  Serial.println("Options: ");
+  Serial.println("\tl -> list current directory");
+  Serial.println("\tb -> play song / enter directory");
+  Serial.println("\ts -> stop song");
+  Serial.println("\tp -> pause song");
+  Serial.println("\tr -> resume song");
+  Serial.println("\te -> exit current directory\n");
+}
+
+int startSong(char* song_name) {
+  if (! musicPlayer.startPlayingFile(song_name)) {
+    Serial.println("Could not start song: \n");
+//    while (1);
+  }
+  sys_state = 1;
+  return sys_state;
+}
+
+void list_current_directory() {
+  File dir = SD.open(curr_dir);
+  int idx = 0;
+  while(true) {
+    File entry = dir.openNextFile();
+    if (!entry) {
+      break;
+    }
+    Serial.print(String(idx) + ": ");
+    if (entry.isDirectory()) {
+      Serial.print("/");
+    }
+    Serial.println(entry.name());
+    entry.close();
+    idx++;
+  }
+}
+
+void play_song() {
+  Serial.println("Test");
+  int num = 2;
+  File dir = SD.open(curr_dir);
+  Serial.println(curr_dir);
+  File entry;
+  for(int i = 0; i <= num; i++) {
+    entry = dir.openNextFile();
+    if (!entry) {
+      Serial.println("No file located at the provided address");
+      entry.close();
+      break;
+    }
+    if (i != num) {
+      entry.close();
+    }
+  }
+  Serial.println(curr_dir);
+  Serial.println(entry.name());
+  Serial.println(strlen(entry.name()));
+  if (entry.isDirectory()) {
+    char* arr = entry.name();
+    while(*curr_dir != '9') {
+      *curr_dir = *curr_dir + 1;
+    }
+    for (int j = 0; j <= strlen(arr); j++) {
+      *curr_dir = arr[j];
+      *curr_dir = *curr_dir + 1;
+    }
+    *curr_dir = '9';
+  }
+  entry.close();
+  Serial.println("Hi");
+  Serial.println(curr_dir);
+}
+
+void exit_current_directory() {
+  
+}
 
 /// File listing helper
 void printDirectory(File dir, int numTabs) {
