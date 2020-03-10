@@ -37,6 +37,11 @@ Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(BREAKOUT_RES
 int sys_state = 0; // 0 = stopped, 1 = playing, 2 = paused
 char curr_dir[20];
 
+const byte numChars = 32;
+char receivedChars[numChars]; // an array to store the received data
+
+boolean newData = false;
+
 void setup() {
   
   // Setup Music Player
@@ -61,7 +66,7 @@ void setup() {
 
   // Setup MP3
   curr_dir[0] = '/';
-  curr_dir[1] = '9';
+//  curr_dir[1] = '9';
   Serial.println("\nWelcome to Dan & Alex's MP3 Player!\n");
   listCommands();
   
@@ -101,33 +106,36 @@ void loop() {
 
   
 //  Serial.println(F("Started playing"));
-
-  while (Serial.available()) {
-    char op_code = Serial.read();
-    switch (op_code) {
-      case 'l':
-        list_current_directory();
-        break;
-      case 'b':
+  recvWithStartEndMarkers();
+//  Serial.println(receivedChars);
+//  while (Serial.available()) {
+  char op_code = receivedChars[0];
+  switch (op_code) {
+    case 'l':
+//        Serial.println("listing");
+      list_current_directory();
+      break;
+    case 'b':
 //        char song_number = Serial.read();
 //        Serial.println(song_number);
-        play_song();
-        Serial.println(curr_dir);
-        break;
-      case 'p':
-        pause_song(1);
-        break;
-      case 's':
-        stop_song();
-        break;
-      case 'r':
-        pause_song(0);
-        break;
-      case 'e':
+      play_song();
+      Serial.println(curr_dir);
+      break;
+    case 'p':
+      pause_song(1);
+      break;
+    case 's':
+      stop_song();
+      break;
+    case 'r':
+      pause_song(0);
+      break;
+    case 'e':
 ////        exit_current_directory();
-        break;
-    }
+      break;
   }
+  newData = false;
+//  }
 
 //  while (musicPlayer.playingMusic) {
 //    // file is now playing in the 'background' so now's a good time
@@ -215,6 +223,41 @@ void list_current_directory() {
     idx++;
   }
 }
+
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+ 
+ // if (Serial.available() > 0) {
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+    recvInProgress = false;
+}
+
 
 void play_song() {
   Serial.println("Test");
