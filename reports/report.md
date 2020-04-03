@@ -16,6 +16,8 @@ We set out to create an Arduino MP3 player. In the end, we built a module simila
 3. Navigation through the playlists (directories) on the SD card with either the serial monitor or push buttons.
 
 ##### Design Decision
+One design decision that we made was to simplify our MP3 into software. The final product of the MP3 player was to display the songs on a screen and navigate those songs with push buttons. This would have been a lot to do all at once. So we made an MP3 in the terminal of arduino with the MP3 module first. Then we could add buttons to control the behavior and finally display all that on a screen.
+Another design decision that was made was to keep track of songs in an array of strings. We had a lot of diffaultilty reading files from the SD card. We found that reading it once and holding that data made playing, forward, and backward the music way easier. This will also make it simple to display on a screen since it just has to print out the songs line by line.
 
 ##### Implementation Details
 
