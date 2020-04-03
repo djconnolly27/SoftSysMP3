@@ -1,4 +1,4 @@
-# MP3 Player
+# Arduino MP3 Player
 ### Alex Bahner and Daniel Connolly
 #### Goal
 We planned to make an MP3 player using an Arduino, along the lines of this project: https://www.youtube.com/watch?v=UodfePdNfg8. The linked project uses an SD card reader, arduino, and simple circuit elements to create an MP3 player that can read MP3 files and play them over a speaker via an Arduino. We intended to begin our project by building a module similar to this before extending further. Our initial extension included an LCD screen capable of displaying the song currently playing, and potentially other songs in the current playlist. We view this project as easily extensible in the realms of display capabilities and/or digital signal processing. A stretch goal for this project would be to make a hardware system on a breadboard that does all the same features of a basic MP3 player. Depending on our progress at the beginning of the project and how long it takes to acquire parts, we may use the SD card readers built into our computer and learn how to process, modify, and output audio files to an Arduino or audio.
@@ -18,6 +18,31 @@ We set out to create an Arduino MP3 player. In the end, we built a module simila
 ##### Design Decision
 
 ##### Implementation Details
+
+One key feature of our MP3 player is the ability to navigate through playlists on the SD card. Below, we show how we create the playlists in our `setPlaylist()` function:
+```
+void setPlaylist() {
+  File dir = SD.open(curr_dir);
+  int idx = 0;
+  while(true) {
+    File entry = dir.openNextFile();
+    if (!entry) {
+      break;
+    }
+    char testscurr[20];
+    strcpy(testscurr, curr_dir);
+    strcat(testscurr, entry.name());
+    myPlaylist[idx] = strdup(testscurr);
+    entry.close();
+    idx++;
+    maxSongs++;
+  }
+  for (int i =0; i< idx; i++) {
+     Serial.println(myPlaylist[i])
+  };
+ }
+```
+After opening up the directory, we iterate through it, creating an array of all of the songs in the playlist. It is important that we allocate space on the heap to store the location and name of the function in our array with the `strdup()` function, which calls `malloc()` in the background. With this playlist setup, we can navigate through and play various songs with our push button and Arduino MP3 player. This data structure provides a simple way for us to track the playlist the user has navigated to at any given time as well as the songs in that playlist without much overhead.
 
 #### Reflection
 We were somewhat successful in achieving our personal learning goals. Over the course of our project, we iterated through several implementations of various aspects of our MP3 player in C, debating the pros and cons of each along the way. This workflow allowed us to make progress individually while also contributing to our goal as a team, allowing us to struggle both on our own and as a team with difficult implementation details. Moreover, we both gained valuable experience in simply working with the C language, practicing and refining our skills whenever we worked on the project. Nevertheless, we got off to a somewhat slow start before running into a massive barrier with the Covid-19 pandemic. This disruption not only meant that we could no longer both work with and test our code on the Arduino-MP3-LCD setup, but it also prevented us from investing as much time as we planned on the project as we neared its end. Overall, while we fell short of some our post-MVP goals and are disappointed about how the Covid disruption impacted our project, we both feel we made solid progress towards our learning goals through the project.
